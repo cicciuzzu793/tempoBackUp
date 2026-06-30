@@ -1,0 +1,45 @@
+name: Build MSI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Prepare config for publish
+        shell: pwsh
+        run: |
+          Copy-Item tempoBackUp\config.example.json tempoBackUp\config.json -Force
+
+      - name: Build MSI
+        run: dotnet build tempoBackUp.Setup\tempoBackUp.Setup.wixproj -c Release
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tempoBackUp-msi
+          path: tempoBackUp.Setup/bin/x64/Release/tempoBackUp.msi
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: tempoBackUp.Setup/bin/x64/Release/tempoBackUp.msi
+          generate_release_notes: true

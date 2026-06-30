@@ -39,8 +39,24 @@ dotnet run --project tools\IconConverter\IconConverter\IconConverter.csproj -- i
 
 ## Setup MSI
 
+L'installer **non è nel repository Git** (è un file generato in `bin/`). Lo trovi così:
+
+1. **GitHub Actions** → workflow *Build MSI* → artifact `tempoBackUp-msi` (dopo ogni push su `main`)
+2. **GitHub Releases** → file `tempoBackUp.msi` (quando crei un tag `v1.0.0`, ecc.)
+
+### Prerequisito sul PC di destinazione
+
+- **Microsoft .NET 8 Desktop Runtime (x64)**  
+  Download: https://dotnet.microsoft.com/download/dotnet/8.0
+
+L'installer MSI **blocca l'installazione** se .NET 8 Desktop non è presente e mostra il link di download.  
+L'applicazione, all'avvio, fa lo stesso controllo e propone di aprire la pagina di download.
+
+### Build MSI in locale
+
 Il progetto `tempoBackUp.Setup` (WiX Toolset) produce l'installer con:
 
+- controllo prerequisito .NET 8 Desktop
 - icona in **Programmi e funzionalità**
 - collegamenti su **Menu Start** e **Desktop** con la stessa icona
 - eseguibile con icona incorporata

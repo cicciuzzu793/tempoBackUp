@@ -1,4 +1,5 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
 
   <Package
     Name="tempoBackUp"
@@ -16,6 +17,17 @@
 
     <Icon Id="AppIcon" SourceFile="..\tempoBackUp\Assets\tempoBackUp.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <netfx:DotNetCompatibilityCheck
+      Property="NETDESKTOP8STATUS"
+      RuntimeType="desktop"
+      Version="8.0.0"
+      Platform="x64"
+      RollForward="latestMajor" />
+
+    <Launch
+      Condition="Installed OR NETDESKTOP8STATUS=&quot;0&quot;"
+      Message="tempoBackUp richiede Microsoft .NET 8 Desktop Runtime (x64). Scaricalo da: https://dotnet.microsoft.com/download/dotnet/8.0" />
 
     <Feature Id="MainFeature" Title="tempoBackUp" Level="1">
       <ComponentGroupRef Id="AppComponents" />
