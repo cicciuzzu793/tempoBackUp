@@ -1,0 +1,25 @@
+{
+  "SourceRoot": "C:\\Users\\Esempio",
+  "DestinationRoot": "D:\\Backup\\Esempio",
+  "IncludedFolders": [
+    "Desktop",
+    "Documents",
+    "Downloads",
+    "Pictures",
+    "Videos",
+    "Music"
+  ],
+  "ExcludedFolders": [
+    "AppData\\Local\\Temp",
+    "AppData\\Local\\Microsoft\\Windows\\INetCache"
+  ],
+  "ExcludedFiles": [
+    "*.tmp",
+    "*.temp",
+    "thumbs.db",
+    "desktop.ini"
+  ],
+  "AppDataMode": "Excluded",
+  "IncludedAppDataFolders": [],
+  "LogFolder": "D:\\Backup\\Logs"
+}

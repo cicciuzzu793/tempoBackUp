@@ -1,0 +1,12 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <PropertyGroup>
+    <OutputName>tempoBackUp</OutputName>
+    <Platform>x64</Platform>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\tempoBackUp\tempoBackUp.vbproj" Publish="true" />
+  </ItemGroup>
+
+</Project>

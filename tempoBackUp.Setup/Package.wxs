@@ -1,0 +1,88 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package
+    Name="tempoBackUp"
+    Manufacturer="Francesco"
+    Version="1.0.0.0"
+    UpgradeCode="c8f4a2e1-6b3d-4f91-9c2e-1a7d5e8b4f30"
+    Scope="perMachine">
+
+    <SummaryInformation
+      Description="Backup manuale di cartelle utente tramite Robocopy"
+      Keywords="backup, robocopy, tempoBackUp" />
+
+    <MajorUpgrade DowngradeErrorMessage="È già installata una versione più recente di tempoBackUp." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="..\tempoBackUp\Assets\tempoBackUp.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <Feature Id="MainFeature" Title="tempoBackUp" Level="1">
+      <ComponentGroupRef Id="AppComponents" />
+      <ComponentRef Id="StartMenuShortcutComponent" />
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="ManufacturerFolder" Name="!(Property.Manufacturer)">
+        <Directory Id="INSTALLFOLDER" Name="tempoBackUp" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="tempoBackUp" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
+      <Component Id="ApplicationFiles" Guid="f3b8c6d2-9a4e-4b1c-8d7f-2e6a5c9b1d40">
+        <File Id="AppExe" Source="$(var.tempoBackUp.TargetDir)tempoBackUp.exe" KeyPath="yes" />
+        <File Id="AppDll" Source="$(var.tempoBackUp.TargetDir)tempoBackUp.dll" />
+        <File Id="AppDeps" Source="$(var.tempoBackUp.TargetDir)tempoBackUp.deps.json" />
+        <File Id="AppRuntimeConfig" Source="$(var.tempoBackUp.TargetDir)tempoBackUp.runtimeconfig.json" />
+        <File Id="AppConfig" Source="$(var.tempoBackUp.TargetDir)config.json" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <Component Id="StartMenuShortcutComponent" Directory="ApplicationProgramsFolder" Guid="a4c1d8e2-7f3b-4a9c-9e1d-5b6c8d2e4f10">
+      <Shortcut
+        Id="StartMenuShortcut"
+        Name="tempoBackUp"
+        Target="[INSTALLFOLDER]tempoBackUp.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="AppIcon"
+        Description="Backup manuale tramite Robocopy" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Francesco\tempoBackUp"
+        Name="StartMenuShortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcutComponent" Directory="DesktopFolder" Guid="b5d2e9f3-8a4c-5b0d-0e2f-6c7d9e3f5a21">
+      <Shortcut
+        Id="DesktopShortcut"
+        Name="tempoBackUp"
+        Target="[INSTALLFOLDER]tempoBackUp.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="AppIcon"
+        Description="Backup manuale tramite Robocopy" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Francesco\tempoBackUp"
+        Name="DesktopShortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+</Wix>

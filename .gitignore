@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+Logs/
+*.user
+*.suo
+tempoBackUp/config.json
+tools/IconConverter/**/bin/
+tools/IconConverter/**/obj/
