@@ -39,10 +39,18 @@ dotnet run --project tools\IconConverter\IconConverter\IconConverter.csproj -- i
 
 ## Setup MSI
 
-L'installer **non è nel repository Git** (è un file generato in `bin/`). Lo trovi così:
+L'installer pronto all'uso è nel repository:
 
-1. **GitHub Actions** → workflow *Build MSI* → artifact `tempoBackUp-msi` (dopo ogni push su `main`)
-2. **GitHub Releases** → file `tempoBackUp.msi` (quando crei un tag `v1.0.0`, ecc.)
+**`dist/tempoBackUp.msi`**
+
+Scaricalo da GitHub (pulsante *Download* o *Raw* nella cartella `dist`) e avvialo sul PC di destinazione.
+
+> Nota: anche la cartella `bin/` resta ignorata da Git; solo `dist/tempoBackUp.msi` viene versionato per distribuzione.
+
+In alternativa, dopo ogni push su `main`:
+
+1. **GitHub Actions** → workflow *Build MSI* → artifact `tempoBackUp-msi`
+2. **GitHub Releases** → allegato `tempoBackUp.msi` (tag `v1.0.0`, ecc.)
 
 ### Prerequisito sul PC di destinazione
 
