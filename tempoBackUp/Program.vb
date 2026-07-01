@@ -9,6 +9,7 @@
         Application.SetHighDpiMode(HighDpiMode.SystemAware)
         Application.EnableVisualStyles()
         Application.SetCompatibleTextRenderingDefault(False)
+        ConfigStore.EnsureUserConfig()
         Application.Run(New FormMain())
     End Sub
 

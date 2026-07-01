@@ -14,12 +14,4 @@
     <ProjectReference Include="..\tempoBackUp\tempoBackUp.vbproj" Publish="true" />
   </ItemGroup>
 
-  <Target Name="EnsureConfigJson" BeforeTargets="Publish">
-    <Copy
-      SourceFiles="..\tempoBackUp\config.example.json"
-      DestinationFiles="..\tempoBackUp\config.json"
-      SkipCopiedFiles="true"
-      Condition="!Exists('..\tempoBackUp\config.json')" />
-  </Target>
-
 </Project>

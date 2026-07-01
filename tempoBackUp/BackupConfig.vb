@@ -27,6 +27,11 @@ Public Class BackupConfig
     End Function
 
     Public Sub SaveToFile(path As String)
+        Dim directory = IO.Path.GetDirectoryName(path)
+        If Not String.IsNullOrWhiteSpace(directory) Then
+            System.IO.Directory.CreateDirectory(directory)
+        End If
+
         Dim options = New JsonSerializerOptions With {.WriteIndented = True}
         Dim json = JsonSerializer.Serialize(Me, options)
         File.WriteAllText(path, json, Encoding.UTF8)

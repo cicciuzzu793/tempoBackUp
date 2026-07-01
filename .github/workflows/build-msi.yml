@@ -22,11 +22,6 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Prepare config for publish
-        shell: pwsh
-        run: |
-          Copy-Item tempoBackUp\config.example.json tempoBackUp\config.json -Force
-
       - name: Build MSI
         run: dotnet build tempoBackUp.Setup\tempoBackUp.Setup.wixproj -c Release
 

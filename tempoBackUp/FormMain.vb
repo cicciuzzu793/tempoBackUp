@@ -10,7 +10,7 @@ Public Class FormMain
 
     Public Sub New()
         InitializeComponent()
-        _configPath = Path.Combine(AppContext.BaseDirectory, "config.json")
+        _configPath = ConfigStore.GetUserConfigPath()
         AddHandler _runner.OutputReceived, AddressOf OnRunnerOutputReceived
         AddHandler _runner.StatusChanged, AddressOf OnRunnerStatusChanged
         AddHandler btnRunBackup.Click, AddressOf btnRunBackup_Click

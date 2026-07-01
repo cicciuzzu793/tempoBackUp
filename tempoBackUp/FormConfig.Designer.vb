@@ -346,7 +346,6 @@ Partial Class FormConfig
         '
         'FormConfig
         '
-        AcceptButton = btnSave
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         CancelButton = btnCancel

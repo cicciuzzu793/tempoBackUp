@@ -12,7 +12,15 @@ Public Class FormConfig
         AddHandler btnBrowseDestination.Click, Sub() BrowseFolder(txtDestinationRoot)
         AddHandler btnBrowseLog.Click, Sub() BrowseFolder(txtLogFolder)
         AddHandler cmbAppDataMode.SelectedIndexChanged, AddressOf UpdateAppDataFieldsState
+        ConfigureMultilineTextBoxes()
         UpdateAppDataFieldsState()
+    End Sub
+
+    Private Sub ConfigureMultilineTextBoxes()
+        For Each textBox In New TextBox() {txtIncludedFolders, txtExcludedFolders, txtExcludedFiles, txtIncludedAppDataFolders}
+            textBox.AcceptsReturn = True
+            textBox.AcceptsTab = True
+        Next
     End Sub
 
     Private Sub LoadFromConfig(config As BackupConfig)

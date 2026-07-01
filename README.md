@@ -11,8 +11,14 @@ Applicazione Windows Forms in VB.NET (.NET 8) per backup manuale di cartelle ute
 ## Apertura in Visual Studio 2022
 
 1. Apri `tempoBackUp.sln`
-2. Copia `tempoBackUp\config.example.json` in `tempoBackUp\config.json` e personalizza i percorsi
+2. Copia `tempoBackUp\config.example.json` in `tempoBackUp\config.json` solo per sviluppo locale (opzionale)
 3. Avvia con F5
+
+La configurazione usata dall'app installata è salvata in:
+
+`%LocalAppData%\QrcodeSrl\tempoBackUp\config.json`
+
+(modificabile da **Impostazioni** senza permessi amministratore)
 
 ## Comandi
 
