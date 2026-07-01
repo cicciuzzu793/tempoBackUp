@@ -16,6 +16,7 @@ Public Class BackupRunner
 
     Public Event OutputReceived As EventHandler(Of String)
     Public Event StatusChanged As EventHandler(Of String)
+    Public Event ProgressChanged As EventHandler(Of BackupProgressEventArgs)
 
     Public ReadOnly Property IsRunning As Boolean
         Get
@@ -50,14 +51,25 @@ Public Class BackupRunner
             Dim destinationRoot = PathValidator.NormalizePath(config.DestinationRoot)
             Dim foldersToProcess = BuildFolderList(config, sourceRoot)
             Dim overallOutcome = BackupOutcome.NoChanges
+            Dim totalSteps = Math.Max(1, foldersToProcess.Count)
+            Dim completedSteps = 0
+
+            RaiseProgress(0, "Preparazione operazione...", isFolderActive:=False)
 
             For Each folder In foldersToProcess
                 If IsCancellationRequested(cancellationToken) Then
                     summary.Cancelled = True
                     summary.Outcome = BackupOutcome.Cancelled
+                    RaiseProgress(GetPercentComplete(completedSteps, totalSteps), "Operazione interrotta.", isFolderActive:=False)
                     Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.").ConfigureAwait(False)
                     Exit For
                 End If
+
+                Dim currentStep = completedSteps + 1
+                RaiseProgress(
+                    GetPercentComplete(completedSteps, totalSteps),
+                    $"Cartella {currentStep} di {totalSteps}: {folder}",
+                    isFolderActive:=True)
 
                 Dim sourcePath = Path.Combine(sourceRoot, folder)
                 Dim destinationPath = Path.Combine(destinationRoot, folder)
@@ -67,6 +79,11 @@ Public Class BackupRunner
                     summary.Messages.Add(skipMessage)
                     RaiseOutput(skipMessage)
                     Await WriteLogLineAsync(logWriter, skipMessage).ConfigureAwait(False)
+                    completedSteps += 1
+                    RaiseProgress(
+                        GetPercentComplete(completedSteps, totalSteps),
+                        $"Saltata: {folder} ({completedSteps}/{totalSteps})",
+                        isFolderActive:=False)
                     Continue For
                 End If
 
@@ -83,16 +100,23 @@ Public Class BackupRunner
                 Dim folderResult = Await RunSingleRobocopyAsync(args, logWriter, cancellationToken).ConfigureAwait(False)
                 summary.Messages.Add($"{folder}: {folderResult.Message}")
                 overallOutcome = MergeOutcome(overallOutcome, folderResult.Outcome)
+                completedSteps += 1
+                RaiseProgress(
+                    GetPercentComplete(completedSteps, totalSteps),
+                    $"Completata: {folder} ({completedSteps}/{totalSteps})",
+                    isFolderActive:=False)
 
                 If folderResult.Outcome = BackupOutcome.Cancelled Then
                     summary.Cancelled = True
                     summary.Outcome = BackupOutcome.Cancelled
+                    RaiseProgress(GetPercentComplete(completedSteps, totalSteps), "Operazione interrotta.", isFolderActive:=False)
                     Exit For
                 End If
 
                 If IsCancellationRequested(cancellationToken) Then
                     summary.Cancelled = True
                     summary.Outcome = BackupOutcome.Cancelled
+                    RaiseProgress(GetPercentComplete(completedSteps, totalSteps), "Operazione interrotta.", isFolderActive:=False)
                     Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.").ConfigureAwait(False)
                     Exit For
                 End If
@@ -107,6 +131,13 @@ Public Class BackupRunner
             End If
 
             summary.Outcome = overallOutcome
+
+            If summary.Cancelled Then
+                RaiseProgress(GetPercentComplete(completedSteps, totalSteps), "Operazione interrotta.", isFolderActive:=False)
+            Else
+                RaiseProgress(100, $"Operazione completata ({completedSteps}/{totalSteps} cartelle).", isFolderActive:=False)
+            End If
+
             Await WriteLogLineAsync(logWriter, String.Empty).ConfigureAwait(False)
             Await WriteLogLineAsync(logWriter, $"Risultato finale: {summary.Outcome}").ConfigureAwait(False)
             Await WriteLogLineAsync(logWriter, $"Terminato: {DateTime.Now:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(False)
@@ -337,4 +368,18 @@ Public Class BackupRunner
     Private Sub RaiseStatus(message As String)
         RaiseEvent StatusChanged(Me, message)
     End Sub
+
+    Private Sub RaiseProgress(percentComplete As Integer, message As String, isFolderActive As Boolean)
+        RaiseEvent ProgressChanged(
+            Me,
+            New BackupProgressEventArgs With {
+                .PercentComplete = Math.Max(0, Math.Min(100, percentComplete)),
+                .Message = message,
+                .IsFolderActive = isFolderActive
+            })
+    End Sub
+
+    Private Shared Function GetPercentComplete(completedSteps As Integer, totalSteps As Integer) As Integer
+        Return (completedSteps * 100) \ Math.Max(1, totalSteps)
+    End Function
 End Class

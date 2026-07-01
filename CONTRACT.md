@@ -118,8 +118,10 @@ Controlli:
 - `btnSimulate` — simulazione (`/L`)
 - `btnStop` — interrompe **solo** il processo avviato dall'app (con conferma)
 - `btnReloadConfig` — ricarica `config.json`
-- `txtOutput` — output live
 - `lblStatus` — stato corrente
+- `lblProgressDetail` — dettaglio avanzamento (cartella corrente)
+- `progressBarWork` — barra di progresso dell'operazione
+- `txtOutput` — output live
 
 Le operazioni lunghe sono asincrone; il form non deve bloccarsi.
 

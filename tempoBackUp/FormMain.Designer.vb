@@ -25,6 +25,8 @@ Partial Class FormMain
         lblLogFolder = New Label()
         txtLogFolder = New TextBox()
         lblStatus = New Label()
+        lblProgressDetail = New Label()
+        progressBarWork = New ProgressBar()
         txtOutput = New TextBox()
         btnRunBackup = New Button()
         btnSimulate = New Button()
@@ -106,17 +108,37 @@ Partial Class FormMain
         lblStatus.TabIndex = 7
         lblStatus.Text = "Pronto"
         '
+        'lblProgressDetail
+        '
+        lblProgressDetail.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblProgressDetail.Location = New Point(12, 218)
+        lblProgressDetail.Name = "lblProgressDetail"
+        lblProgressDetail.Size = New Size(860, 15)
+        lblProgressDetail.TabIndex = 8
+        lblProgressDetail.Text = "In attesa"
+        '
+        'progressBarWork
+        '
+        progressBarWork.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        progressBarWork.Location = New Point(12, 236)
+        progressBarWork.MarqueeAnimationSpeed = 35
+        progressBarWork.Name = "progressBarWork"
+        progressBarWork.Size = New Size(860, 24)
+        progressBarWork.Step = 1
+        progressBarWork.Style = ProgressBarStyle.Continuous
+        progressBarWork.TabIndex = 9
+        '
         'txtOutput
         '
         txtOutput.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         txtOutput.Font = New Font("Consolas", 9.0F, FontStyle.Regular, GraphicsUnit.Point)
-        txtOutput.Location = New Point(12, 228)
+        txtOutput.Location = New Point(12, 268)
         txtOutput.Multiline = True
         txtOutput.Name = "txtOutput"
         txtOutput.ReadOnly = True
         txtOutput.ScrollBars = ScrollBars.Both
-        txtOutput.Size = New Size(860, 361)
-        txtOutput.TabIndex = 8
+        txtOutput.Size = New Size(860, 321)
+        txtOutput.TabIndex = 10
         txtOutput.WordWrap = False
         '
         'btnRunBackup
@@ -181,6 +203,8 @@ Partial Class FormMain
         Controls.Add(btnSimulate)
         Controls.Add(btnRunBackup)
         Controls.Add(txtOutput)
+        Controls.Add(progressBarWork)
+        Controls.Add(lblProgressDetail)
         Controls.Add(lblStatus)
         Controls.Add(txtLogFolder)
         Controls.Add(lblLogFolder)
@@ -205,6 +229,8 @@ Partial Class FormMain
     Friend WithEvents lblLogFolder As Label
     Friend WithEvents txtLogFolder As TextBox
     Friend WithEvents lblStatus As Label
+    Friend WithEvents lblProgressDetail As Label
+    Friend WithEvents progressBarWork As ProgressBar
     Friend WithEvents txtOutput As TextBox
     Friend WithEvents btnRunBackup As Button
     Friend WithEvents btnSimulate As Button

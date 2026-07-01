@@ -13,6 +13,7 @@ Public Class FormMain
         _configPath = ConfigStore.GetUserConfigPath()
         AddHandler _runner.OutputReceived, AddressOf OnRunnerOutputReceived
         AddHandler _runner.StatusChanged, AddressOf OnRunnerStatusChanged
+        AddHandler _runner.ProgressChanged, AddressOf OnRunnerProgressChanged
         AddHandler btnRunBackup.Click, AddressOf btnRunBackup_Click
         AddHandler btnSimulate.Click, AddressOf btnSimulate_Click
         AddHandler btnStop.Click, AddressOf btnStop_Click
@@ -21,6 +22,7 @@ Public Class FormMain
         AddHandler Me.FormClosing, AddressOf FormMain_FormClosing
         LoadApplicationIcon()
         ApplyVersionLabels()
+        ResetProgressUi()
         LoadConfiguration()
     End Sub
 
@@ -70,6 +72,7 @@ Public Class FormMain
 
         txtOutput.Clear()
         _isRunning = True
+        ResetProgressUi()
         SetButtonsEnabled(canRun:=False, running:=True)
         _runCts = New CancellationTokenSource()
 
@@ -105,6 +108,9 @@ Public Class FormMain
             _runCts?.Dispose()
             _runCts = Nothing
             SetButtonsEnabled(canRun:=_config IsNot Nothing, running:=False)
+            If progressBarWork.Style = ProgressBarStyle.Marquee Then
+                progressBarWork.Style = ProgressBarStyle.Continuous
+            End If
         End Try
     End Function
 
@@ -189,6 +195,36 @@ Public Class FormMain
         Else
             UpdateStatus(message)
         End If
+    End Sub
+
+    Private Sub OnRunnerProgressChanged(sender As Object, e As BackupProgressEventArgs)
+        If InvokeRequired Then
+            BeginInvoke(New Action(Of BackupProgressEventArgs)(AddressOf UpdateProgressUi), e)
+        Else
+            UpdateProgressUi(e)
+        End If
+    End Sub
+
+    Private Sub ResetProgressUi()
+        progressBarWork.Style = ProgressBarStyle.Continuous
+        progressBarWork.Minimum = 0
+        progressBarWork.Maximum = 100
+        progressBarWork.Value = 0
+        lblProgressDetail.Text = "In attesa"
+    End Sub
+
+    Private Sub UpdateProgressUi(progress As BackupProgressEventArgs)
+        lblProgressDetail.Text = progress.Message
+
+        If progress.IsFolderActive Then
+            progressBarWork.Style = ProgressBarStyle.Continuous
+            progressBarWork.Value = Math.Max(progressBarWork.Minimum, Math.Min(progress.PercentComplete, progressBarWork.Maximum))
+            progressBarWork.Style = ProgressBarStyle.Marquee
+            Return
+        End If
+
+        progressBarWork.Style = ProgressBarStyle.Continuous
+        progressBarWork.Value = Math.Max(progressBarWork.Minimum, Math.Min(progress.PercentComplete, progressBarWork.Maximum))
     End Sub
 
     Private Sub UpdateStatus(message As String)
