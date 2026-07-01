@@ -97,7 +97,14 @@ Public Class BackupRunner
                 Await WriteLogLineAsync(logWriter, $"--- Cartella: {folder} ---").ConfigureAwait(False)
                 Await WriteLogLineAsync(logWriter, commandLine).ConfigureAwait(False)
 
-                Dim folderResult = Await RunSingleRobocopyAsync(args, logWriter, cancellationToken).ConfigureAwait(False)
+                Dim folderResult = Await RunSingleRobocopyAsync(
+                    args,
+                    logWriter,
+                    cancellationToken,
+                    currentStep,
+                    totalSteps,
+                    folder,
+                    completedSteps).ConfigureAwait(False)
                 summary.Messages.Add($"{folder}: {folderResult.Message}")
                 overallOutcome = MergeOutcome(overallOutcome, folderResult.Outcome)
                 completedSteps += 1
@@ -166,11 +173,21 @@ Public Class BackupRunner
         Return _cancellationRequested OrElse cancellationToken.IsCancellationRequested
     End Function
 
-    Private Async Function RunSingleRobocopyAsync(args As List(Of String), logWriter As StreamWriter, cancellationToken As CancellationToken) As Task(Of RobocopyResult)
+    Private Async Function RunSingleRobocopyAsync(
+        args As List(Of String),
+        logWriter As StreamWriter,
+        cancellationToken As CancellationToken,
+        folderIndex As Integer,
+        totalFolders As Integer,
+        folderName As String,
+        completedFoldersBefore As Integer) As Task(Of RobocopyResult)
+
         Dim robocopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "robocopy.exe")
         Dim outputBuilder As New StringBuilder()
         Dim errorBuilder As New StringBuilder()
         Dim process As New Process()
+        Dim folderActivityCount = 0
+        Dim lastFolderProgressUpdate = DateTime.MinValue
 
         _currentProcess = process
         process.StartInfo.FileName = robocopyPath
@@ -183,11 +200,29 @@ Public Class BackupRunner
             process.StartInfo.ArgumentList.Add(argument)
         Next
 
+        Dim reportFolderActivity =
+            Sub()
+                folderActivityCount += 1
+                Dim now = DateTime.UtcNow
+                If (now - lastFolderProgressUpdate).TotalMilliseconds < 250 Then
+                    Return
+                End If
+
+                lastFolderProgressUpdate = now
+                Dim folderFraction = Math.Min(0.92, folderActivityCount / 200.0)
+                Dim percent = GetPercentComplete(completedFoldersBefore, totalFolders, folderFraction)
+                RaiseProgress(
+                    percent,
+                    $"Cartella {folderIndex} di {totalFolders}: {folderName}",
+                    isFolderActive:=True)
+            End Sub
+
         AddHandler process.OutputDataReceived,
             Sub(sender, e)
                 If e.Data IsNot Nothing Then
                     outputBuilder.AppendLine(e.Data)
                     RaiseOutput(e.Data)
+                    reportFolderActivity()
                 End If
             End Sub
 
@@ -196,6 +231,7 @@ Public Class BackupRunner
                 If e.Data IsNot Nothing Then
                     errorBuilder.AppendLine(e.Data)
                     RaiseOutput(e.Data)
+                    reportFolderActivity()
                 End If
             End Sub
 
@@ -379,7 +415,13 @@ Public Class BackupRunner
             })
     End Sub
 
-    Private Shared Function GetPercentComplete(completedSteps As Integer, totalSteps As Integer) As Integer
-        Return (completedSteps * 100) \ Math.Max(1, totalSteps)
+    Private Shared Function GetPercentComplete(
+        completedSteps As Integer,
+        totalSteps As Integer,
+        Optional currentFolderFraction As Double = 0) As Integer
+
+        Dim total = Math.Max(1, totalSteps)
+        Dim units = completedSteps + Math.Max(0.0, Math.Min(1.0, currentFolderFraction))
+        Return CInt(Math.Min(100, Math.Floor((units * 100.0) / total)))
     End Function
 End Class

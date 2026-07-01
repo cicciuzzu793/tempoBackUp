@@ -2,16 +2,24 @@ Imports System.IO
 Imports System.Threading
 
 Public Class FormMain
+    Private Const MaxOutputCharacters As Integer = 200000
+    Private Const OutputTrimToCharacters As Integer = 150000
+    Private Const OutputFlushIntervalMs As Integer = 150
+
     Private ReadOnly _runner As New BackupRunner()
+    Private ReadOnly _outputBuffer As New List(Of String)()
+    Private ReadOnly _outputBufferLock As New Object()
     Private _config As BackupConfig
     Private _configPath As String
     Private _runCts As CancellationTokenSource
     Private _isRunning As Boolean
-    Private _folderProgressActive As Boolean
+    Private _outputFlushTimer As System.Windows.Forms.Timer
 
     Public Sub New()
         InitializeComponent()
         _configPath = ConfigStore.GetUserConfigPath()
+        _outputFlushTimer = New System.Windows.Forms.Timer With {.Interval = OutputFlushIntervalMs}
+        AddHandler _outputFlushTimer.Tick, AddressOf OnOutputFlushTimerTick
         AddHandler _runner.OutputReceived, AddressOf OnRunnerOutputReceived
         AddHandler _runner.StatusChanged, AddressOf OnRunnerStatusChanged
         AddHandler _runner.ProgressChanged, AddressOf OnRunnerProgressChanged
@@ -21,6 +29,7 @@ Public Class FormMain
         AddHandler btnReloadConfig.Click, AddressOf btnReloadConfig_Click
         AddHandler btnEditConfig.Click, AddressOf btnEditConfig_Click
         AddHandler Me.FormClosing, AddressOf FormMain_FormClosing
+        AddHandler Me.FormClosed, AddressOf FormMain_FormClosed
         LoadApplicationIcon()
         ApplyVersionLabels()
         ResetProgressUi()
@@ -85,6 +94,8 @@ Public Class FormMain
 
             Dim summary = Await _runner.RunAsync(_config, simulation, _runCts.Token).ConfigureAwait(True)
 
+            FlushOutputBuffer(force:=True)
+
             If _runCts.IsCancellationRequested OrElse summary.Cancelled Then
                 lblStatus.Text = BackupOutcome.Cancelled.ToString()
                 AppendOutput("Operazione interrotta.")
@@ -99,19 +110,25 @@ Public Class FormMain
             If Not String.IsNullOrWhiteSpace(summary.LogFilePath) Then
                 AppendOutput($"Log salvato in: {summary.LogFilePath}")
             End If
+
+            FlushOutputBuffer(force:=True)
+            SetProgressBarValue(100)
+            lblProgressDetail.Text = "Operazione completata."
         Catch ex As OperationCanceledException
             lblStatus.Text = BackupOutcome.Cancelled.ToString()
             AppendOutput("Operazione annullata.")
+            FlushOutputBuffer(force:=True)
         Catch ex As Exception
             lblStatus.Text = BackupOutcome.Failure.ToString()
             AppendOutput($"Errore applicativo: {ex.Message}")
+            FlushOutputBuffer(force:=True)
         Finally
             _isRunning = False
             _runCts?.Dispose()
             _runCts = Nothing
+            FlushOutputBuffer(force:=True)
             SetButtonsEnabled(canRun:=_config IsNot Nothing, running:=False)
             SetInteractiveControlsDuringRun(running:=False)
-            EnsureProgressBarContinuous()
         End Try
     End Function
 
@@ -166,6 +183,8 @@ Public Class FormMain
     End Sub
 
     Private Sub FormMain_FormClosing(sender As Object, e As FormClosingEventArgs)
+        FlushOutputBuffer(force:=True)
+
         If Not _isRunning Then
             Return
         End If
@@ -186,16 +205,13 @@ Public Class FormMain
         _runner.RequestStop()
     End Sub
 
-    Private Sub OnRunnerOutputReceived(sender As Object, message As String)
-        If Not CanUpdateUi() Then
-            Return
-        End If
+    Private Sub FormMain_FormClosed(sender As Object, e As FormClosedEventArgs)
+        _outputFlushTimer.Stop()
+        _outputFlushTimer.Dispose()
+    End Sub
 
-        If InvokeRequired Then
-            BeginInvoke(New Action(Of String)(AddressOf AppendOutput), message)
-        Else
-            AppendOutput(message)
-        End If
+    Private Sub OnRunnerOutputReceived(sender As Object, message As String)
+        QueueOutput(message)
     End Sub
 
     Private Sub OnRunnerStatusChanged(sender As Object, message As String)
@@ -215,7 +231,7 @@ Public Class FormMain
             Return
         End If
 
-        Dim progressSnapshot = New BackupProgressEventArgs With {
+        Dim progressSnapshot As New BackupProgressEventArgs With {
             .PercentComplete = e.PercentComplete,
             .Message = e.Message,
             .IsFolderActive = e.IsFolderActive
@@ -228,6 +244,10 @@ Public Class FormMain
         End If
     End Sub
 
+    Private Sub OnOutputFlushTimerTick(sender As Object, e As EventArgs)
+        FlushOutputBuffer(force:=False)
+    End Sub
+
     Private Function CanUpdateUi() As Boolean
         Return Not IsDisposed AndAlso IsHandleCreated
     End Function
@@ -238,10 +258,9 @@ Public Class FormMain
     End Sub
 
     Private Sub ResetProgressUi()
-        _folderProgressActive = False
+        progressBarWork.Style = ProgressBarStyle.Continuous
         progressBarWork.Minimum = 0
         progressBarWork.Maximum = 100
-        EnsureProgressBarContinuous()
         progressBarWork.Value = 0
         lblProgressDetail.Text = "In attesa"
     End Sub
@@ -252,36 +271,11 @@ Public Class FormMain
         End If
 
         lblProgressDetail.Text = progress.Message
-
-        If progress.IsFolderActive Then
-            EnsureProgressBarMarquee()
-            Return
-        End If
-
-        SetProgressBarContinuousValue(progress.PercentComplete)
+        SetProgressBarValue(progress.PercentComplete)
     End Sub
 
-    Private Sub EnsureProgressBarMarquee()
-        If _folderProgressActive AndAlso progressBarWork.Style = ProgressBarStyle.Marquee Then
-            Return
-        End If
-
-        _folderProgressActive = True
-        progressBarWork.Style = ProgressBarStyle.Marquee
-    End Sub
-
-    Private Sub EnsureProgressBarContinuous()
-        If Not _folderProgressActive AndAlso progressBarWork.Style = ProgressBarStyle.Continuous Then
-            Return
-        End If
-
-        _folderProgressActive = False
+    Private Sub SetProgressBarValue(value As Integer)
         progressBarWork.Style = ProgressBarStyle.Continuous
-    End Sub
-
-    Private Sub SetProgressBarContinuousValue(value As Integer)
-        EnsureProgressBarContinuous()
-
         Dim clamped = Math.Max(progressBarWork.Minimum, Math.Min(value, progressBarWork.Maximum))
         If progressBarWork.Value <> clamped Then
             progressBarWork.Value = clamped
@@ -290,6 +284,57 @@ Public Class FormMain
 
     Private Sub UpdateStatus(message As String)
         lblStatus.Text = message
+    End Sub
+
+    Private Sub QueueOutput(message As String)
+        SyncLock _outputBufferLock
+            _outputBuffer.Add(message)
+            If CanUpdateUi() AndAlso Not _outputFlushTimer.Enabled Then
+                _outputFlushTimer.Start()
+            End If
+        End SyncLock
+    End Sub
+
+    Private Sub FlushOutputBuffer(force As Boolean)
+        Dim batch As List(Of String) = Nothing
+
+        SyncLock _outputBufferLock
+            If _outputBuffer.Count = 0 Then
+                If force Then
+                    _outputFlushTimer.Stop()
+                End If
+                Return
+            End If
+
+            batch = New List(Of String)(_outputBuffer)
+            _outputBuffer.Clear()
+        End SyncLock
+
+        If Not CanUpdateUi() Then
+            Return
+        End If
+
+        If InvokeRequired Then
+            BeginInvoke(New Action(Of List(Of String))(AddressOf ApplyOutputBatch), batch)
+        Else
+            ApplyOutputBatch(batch)
+        End If
+
+        If force Then
+            _outputFlushTimer.Stop()
+        End If
+    End Sub
+
+    Private Sub ApplyOutputBatch(lines As List(Of String))
+        If Not CanUpdateUi() OrElse lines.Count = 0 Then
+            Return
+        End If
+
+        txtOutput.AppendText(String.Join(Environment.NewLine, lines) & Environment.NewLine)
+
+        If txtOutput.TextLength > MaxOutputCharacters Then
+            txtOutput.Text = txtOutput.Text.Substring(txtOutput.TextLength - OutputTrimToCharacters)
+        End If
     End Sub
 
     Private Sub AppendOutput(message As String)
@@ -302,7 +347,7 @@ Public Class FormMain
             Return
         End If
 
-        txtOutput.AppendText(message & Environment.NewLine)
+        ApplyOutputBatch(New List(Of String) From {message})
     End Sub
 
     Private Sub SetButtonsEnabled(canRun As Boolean, Optional running As Boolean = False)
