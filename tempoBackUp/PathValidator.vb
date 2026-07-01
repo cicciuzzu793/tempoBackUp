@@ -18,8 +18,17 @@ End Class
 Public Module PathValidator
     Private ReadOnly ValidAppDataModes As String() = {"Excluded", "Included", "Selective"}
 
+    Public Function IsUncPath(path As String) As Boolean
+        Return Not String.IsNullOrWhiteSpace(path) AndAlso path.Trim().StartsWith("\\", StringComparison.Ordinal)
+    End Function
+
     Public Function NormalizePath(path As String) As String
-        Return IO.Path.GetFullPath(path.Trim())
+        Dim trimmed = path.Trim()
+        If IsUncPath(trimmed) Then
+            Return trimmed.TrimEnd(IO.Path.DirectorySeparatorChar, IO.Path.AltDirectorySeparatorChar)
+        End If
+
+        Return IO.Path.GetFullPath(trimmed)
     End Function
 
     Public Function PathsEqual(left As String, right As String) As Boolean
@@ -138,14 +147,18 @@ Public Module PathValidator
             Return PathValidationResult.Fail($"Impossibile creare la cartella log: {ex.Message}")
         End Try
 
-        Dim destinationRoot = Path.GetPathRoot(destination)
-        If String.IsNullOrWhiteSpace(destinationRoot) Then
-            Return PathValidationResult.Fail("Impossibile determinare l'unità della destinazione.")
-        End If
+        If Not IsUncPath(destination) Then
+            Dim destinationRoot = Path.GetPathRoot(destination)
+            If String.IsNullOrWhiteSpace(destinationRoot) Then
+                Return PathValidationResult.Fail("Impossibile determinare l'unità della destinazione.")
+            End If
 
-        Dim driveInfo As New DriveInfo(destinationRoot)
-        If Not driveInfo.IsReady Then
-            Return PathValidationResult.Fail($"L'unità di destinazione non è disponibile: {destinationRoot}")
+            Dim driveInfo As New DriveInfo(destinationRoot)
+            If Not driveInfo.IsReady Then
+                Return PathValidationResult.Fail($"L'unità di destinazione non è disponibile: {destinationRoot}")
+            End If
+        ElseIf Not Directory.Exists(destination) Then
+            Return PathValidationResult.Fail($"La condivisione di rete non è raggiungibile: {destination}")
         End If
 
         If config.IncludedFolders Is Nothing OrElse config.IncludedFolders.Count = 0 Then

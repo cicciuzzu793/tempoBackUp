@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Text
 Imports System.Text.Json
 
 Public Class BackupConfig
@@ -23,6 +24,25 @@ Public Class BackupConfig
         If config.ExcludedFiles Is Nothing Then config.ExcludedFiles = New List(Of String)()
         If config.IncludedAppDataFolders Is Nothing Then config.IncludedAppDataFolders = New List(Of String)()
         Return config
+    End Function
+
+    Public Sub SaveToFile(path As String)
+        Dim options = New JsonSerializerOptions With {.WriteIndented = True}
+        Dim json = JsonSerializer.Serialize(Me, options)
+        File.WriteAllText(path, json, Encoding.UTF8)
+    End Sub
+
+    Public Function Clone() As BackupConfig
+        Return New BackupConfig With {
+            .SourceRoot = SourceRoot,
+            .DestinationRoot = DestinationRoot,
+            .IncludedFolders = New List(Of String)(IncludedFolders),
+            .ExcludedFolders = New List(Of String)(ExcludedFolders),
+            .ExcludedFiles = New List(Of String)(ExcludedFiles),
+            .AppDataMode = AppDataMode,
+            .IncludedAppDataFolders = New List(Of String)(IncludedAppDataFolders),
+            .LogFolder = LogFolder
+        }
     End Function
 
     Public Function ToLogSummary() As String

@@ -29,6 +29,7 @@ Partial Class FormMain
         btnRunBackup = New Button()
         btnSimulate = New Button()
         btnStop = New Button()
+        btnEditConfig = New Button()
         btnReloadConfig = New Button()
         SuspendLayout()
         '
@@ -149,13 +150,23 @@ Partial Class FormMain
         btnStop.Text = "Interrompi"
         btnStop.UseVisualStyleBackColor = True
         '
+        'btnEditConfig
+        '
+        btnEditConfig.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnEditConfig.Location = New Point(626, 601)
+        btnEditConfig.Name = "btnEditConfig"
+        btnEditConfig.Size = New Size(120, 32)
+        btnEditConfig.TabIndex = 12
+        btnEditConfig.Text = "Impostazioni"
+        btnEditConfig.UseVisualStyleBackColor = True
+        '
         'btnReloadConfig
         '
         btnReloadConfig.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
         btnReloadConfig.Location = New Point(752, 601)
         btnReloadConfig.Name = "btnReloadConfig"
         btnReloadConfig.Size = New Size(120, 32)
-        btnReloadConfig.TabIndex = 12
+        btnReloadConfig.TabIndex = 13
         btnReloadConfig.Text = "Ricarica config"
         btnReloadConfig.UseVisualStyleBackColor = True
         '
@@ -165,6 +176,7 @@ Partial Class FormMain
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(884, 645)
         Controls.Add(btnReloadConfig)
+        Controls.Add(btnEditConfig)
         Controls.Add(btnStop)
         Controls.Add(btnSimulate)
         Controls.Add(btnRunBackup)
@@ -197,5 +209,6 @@ Partial Class FormMain
     Friend WithEvents btnRunBackup As Button
     Friend WithEvents btnSimulate As Button
     Friend WithEvents btnStop As Button
+    Friend WithEvents btnEditConfig As Button
     Friend WithEvents btnReloadConfig As Button
 End Class

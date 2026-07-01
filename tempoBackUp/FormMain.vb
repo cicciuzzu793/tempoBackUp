@@ -17,9 +17,16 @@ Public Class FormMain
         AddHandler btnSimulate.Click, AddressOf btnSimulate_Click
         AddHandler btnStop.Click, AddressOf btnStop_Click
         AddHandler btnReloadConfig.Click, AddressOf btnReloadConfig_Click
+        AddHandler btnEditConfig.Click, AddressOf btnEditConfig_Click
         AddHandler Me.FormClosing, AddressOf FormMain_FormClosing
         LoadApplicationIcon()
+        ApplyVersionLabels()
         LoadConfiguration()
+    End Sub
+
+    Private Sub ApplyVersionLabels()
+        lblTitle.Text = $"tempoBackUp  {AppVersion.DisplayVersion}"
+        Text = $"tempoBackUp {AppVersion.DisplayVersion} - Backup manuale"
     End Sub
 
     Private Sub LoadApplicationIcon()
@@ -124,6 +131,25 @@ Public Class FormMain
         End If
     End Sub
 
+    Private Sub btnEditConfig_Click(sender As Object, e As EventArgs)
+        If _isRunning Then
+            MessageBox.Show("Impossibile modificare la configurazione durante un'operazione in corso.", "tempoBackUp", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        If _config Is Nothing Then
+            MessageBox.Show("Configurazione non caricata.", "tempoBackUp", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Using editor As New FormConfig(_configPath, _config.Clone())
+            If editor.ShowDialog(Me) = DialogResult.OK Then
+                LoadConfiguration()
+                AppendOutput("Configurazione salvata da Impostazioni.")
+            End If
+        End Using
+    End Sub
+
     Private Sub btnReloadConfig_Click(sender As Object, e As EventArgs)
         If _isRunning Then
             MessageBox.Show("Impossibile ricaricare la configurazione durante un'operazione in corso.", "tempoBackUp", MessageBoxButtons.OK, MessageBoxIcon.Information)
@@ -182,6 +208,7 @@ Public Class FormMain
     Private Sub SetButtonsEnabled(canRun As Boolean, Optional running As Boolean = False)
         btnRunBackup.Enabled = canRun AndAlso Not running
         btnSimulate.Enabled = canRun AndAlso Not running
+        btnEditConfig.Enabled = Not running
         btnReloadConfig.Enabled = Not running
         btnStop.Enabled = running
     End Sub
