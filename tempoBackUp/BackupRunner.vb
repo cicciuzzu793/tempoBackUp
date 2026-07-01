@@ -10,6 +10,8 @@ Public Class BackupRunSummary
 End Class
 
 Public Class BackupRunner
+    Private Const CopyAllRootMarker As String = "."
+
     Private ReadOnly _commandBuilder As New RobocopyCommandBuilder()
     Private _currentProcess As Process
     Private _cancellationRequested As Boolean
@@ -65,14 +67,16 @@ Public Class BackupRunner
                     Exit For
                 End If
 
+                Dim displayName = GetFolderDisplayName(folder)
                 Dim currentStep = completedSteps + 1
                 RaiseProgress(
                     GetPercentComplete(completedSteps, totalSteps),
-                    $"Cartella {currentStep} di {totalSteps}: {folder}",
+                    $"Cartella {currentStep} di {totalSteps}: {displayName}",
                     isFolderActive:=True)
 
-                Dim sourcePath = Path.Combine(sourceRoot, folder)
-                Dim destinationPath = Path.Combine(destinationRoot, folder)
+                Dim sourcePath As String = Nothing
+                Dim destinationPath As String = Nothing
+                ResolveFolderPaths(folder, sourceRoot, destinationRoot, sourcePath, destinationPath)
 
                 If Not Directory.Exists(sourcePath) Then
                     Dim skipMessage = $"Cartella sorgente assente, salto: {sourcePath}"
@@ -82,7 +86,7 @@ Public Class BackupRunner
                     completedSteps += 1
                     RaiseProgress(
                         GetPercentComplete(completedSteps, totalSteps),
-                        $"Saltata: {folder} ({completedSteps}/{totalSteps})",
+                        $"Saltata: {displayName} ({completedSteps}/{totalSteps})",
                         isFolderActive:=False)
                     Continue For
                 End If
@@ -92,9 +96,9 @@ Public Class BackupRunner
                 Dim args = _commandBuilder.BuildArgumentList(sourcePath, destinationPath, config, simulation)
                 Dim commandLine = _commandBuilder.BuildCommandLineForLog(args)
 
-                RaiseStatus($"Esecuzione: {folder}")
+                RaiseStatus($"Esecuzione: {displayName}")
                 RaiseOutput(commandLine)
-                Await WriteLogLineAsync(logWriter, $"--- Cartella: {folder} ---").ConfigureAwait(False)
+                Await WriteLogLineAsync(logWriter, $"--- Cartella: {displayName} ---").ConfigureAwait(False)
                 Await WriteLogLineAsync(logWriter, commandLine).ConfigureAwait(False)
 
                 Dim folderResult = Await RunSingleRobocopyAsync(
@@ -103,14 +107,14 @@ Public Class BackupRunner
                     cancellationToken,
                     currentStep,
                     totalSteps,
-                    folder,
+                    displayName,
                     completedSteps).ConfigureAwait(False)
-                summary.Messages.Add($"{folder}: {folderResult.Message}")
+                summary.Messages.Add($"{displayName}: {folderResult.Message}")
                 overallOutcome = MergeOutcome(overallOutcome, folderResult.Outcome)
                 completedSteps += 1
                 RaiseProgress(
                     GetPercentComplete(completedSteps, totalSteps),
-                    $"Completata: {folder} ({completedSteps}/{totalSteps})",
+                    $"Completata: {displayName} ({completedSteps}/{totalSteps})",
                     isFolderActive:=False)
 
                 If folderResult.Outcome = BackupOutcome.Cancelled Then
@@ -341,6 +345,16 @@ Public Class BackupRunner
     Private Shared Function BuildFolderList(config As BackupConfig, sourceRoot As String) As List(Of String)
         Dim folders As New List(Of String)()
 
+        If config.CopyAll Then
+            folders.Add(CopyAllRootMarker)
+
+            If String.Equals(config.AppDataMode, "Selective", StringComparison.OrdinalIgnoreCase) Then
+                AppendSelectiveAppDataFolders(config, folders)
+            End If
+
+            Return folders.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+        End If
+
         For Each folder In config.IncludedFolders
             If Not String.IsNullOrWhiteSpace(folder) Then
                 folders.Add(folder)
@@ -352,20 +366,48 @@ Public Class BackupRunner
                 folders.Add("AppData")
             End If
         ElseIf String.Equals(config.AppDataMode, "Selective", StringComparison.OrdinalIgnoreCase) Then
-            For Each appDataFolder In config.IncludedAppDataFolders
-                If String.IsNullOrWhiteSpace(appDataFolder) Then
-                    Continue For
-                End If
-
-                Dim relativePath = If(appDataFolder.StartsWith("AppData\", StringComparison.OrdinalIgnoreCase),
-                                      appDataFolder,
-                                      Path.Combine("AppData", appDataFolder))
-                folders.Add(relativePath)
-            Next
+            AppendSelectiveAppDataFolders(config, folders)
         End If
 
         Return folders.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
     End Function
+
+    Private Shared Sub AppendSelectiveAppDataFolders(config As BackupConfig, folders As List(Of String))
+        For Each appDataFolder In config.IncludedAppDataFolders
+            If String.IsNullOrWhiteSpace(appDataFolder) Then
+                Continue For
+            End If
+
+            Dim relativePath = If(appDataFolder.StartsWith("AppData\", StringComparison.OrdinalIgnoreCase),
+                                  appDataFolder,
+                                  Path.Combine("AppData", appDataFolder))
+            folders.Add(relativePath)
+        Next
+    End Sub
+
+    Private Shared Function GetFolderDisplayName(folder As String) As String
+        If String.Equals(folder, CopyAllRootMarker, StringComparison.Ordinal) Then
+            Return "intera sorgente"
+        End If
+
+        Return folder
+    End Function
+
+    Private Shared Sub ResolveFolderPaths(
+        folder As String,
+        sourceRoot As String,
+        destinationRoot As String,
+        ByRef sourcePath As String,
+        ByRef destinationPath As String)
+
+        If String.Equals(folder, CopyAllRootMarker, StringComparison.Ordinal) Then
+            sourcePath = sourceRoot
+            destinationPath = destinationRoot
+        Else
+            sourcePath = Path.Combine(sourceRoot, folder)
+            destinationPath = Path.Combine(destinationRoot, folder)
+        End If
+    End Sub
 
     Private Shared Function MergeOutcome(current As BackupOutcome, nextOutcome As BackupOutcome) As BackupOutcome
         If nextOutcome = BackupOutcome.Cancelled OrElse nextOutcome = BackupOutcome.FatalFailure Then

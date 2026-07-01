@@ -9,6 +9,7 @@
     "Videos",
     "Music"
   ],
+  "CopyAll": false,
   "ExcludedFolders": [
     "node_modules",
     "AppData\\Local\\Temp",

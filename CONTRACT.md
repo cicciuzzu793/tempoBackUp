@@ -26,6 +26,7 @@ Schema obbligatorio (nomi proprietà immutabili):
   "SourceRoot": "C:\\Users\\Francesco",
   "DestinationRoot": "D:\\Backup\\Francesco",
   "IncludedFolders": ["Desktop", "Documents", "Downloads", "Pictures", "Videos", "Music"],
+  "CopyAll": false,
   "ExcludedFolders": ["AppData\\Local\\Temp", "AppData\\Local\\Microsoft\\Windows\\INetCache"],
   "ExcludedFiles": ["*.tmp", "*.temp", "thumbs.db", "desktop.ini"],
   "AppDataMode": "Excluded",
@@ -38,7 +39,8 @@ Schema obbligatorio (nomi proprietà immutabili):
 
 - **SourceRoot**: radice del profilo utente da cui derivano le cartelle incluse.
 - **DestinationRoot**: radice di destinazione; per ogni cartella inclusa si copia `SourceRoot\Nome` → `DestinationRoot\Nome`.
-- **IncludedFolders**: elenco relativo di cartelle sotto `SourceRoot`.
+- **IncludedFolders**: elenco relativo di cartelle sotto `SourceRoot` (ignorato se `CopyAll` è `true`).
+- **CopyAll**: se `true`, copia l’intero contenuto di `SourceRoot` verso `DestinationRoot` in un’unica passata Robocopy, senza elencare le sottocartelle. Le esclusioni (`ExcludedFolders`, `AppDataMode`) restano attive.
 - **ExcludedFolders**: esclusioni tramite `/XD`. Un **nome semplice** (es. `node_modules`) esclude ogni cartella con quel nome a qualsiasi profondità sotto la cartella in copia. Un **percorso relativo a SourceRoot** (es. `AppData\Local\Temp`) esclude quel percorso quando ricade sotto la cartella inclusa in esecuzione.
 - **ExcludedFiles**: pattern file esclusi tramite `/XF`.
 - **AppDataMode**: `Excluded` | `Included` | `Selective`.

@@ -6,6 +6,7 @@ Public Class BackupConfig
     Public Property SourceRoot As String = String.Empty
     Public Property DestinationRoot As String = String.Empty
     Public Property IncludedFolders As List(Of String) = New List(Of String)()
+    Public Property CopyAll As Boolean = False
     Public Property ExcludedFolders As List(Of String) = New List(Of String)()
     Public Property ExcludedFiles As List(Of String) = New List(Of String)()
     Public Property AppDataMode As String = "Excluded"
@@ -42,6 +43,7 @@ Public Class BackupConfig
             .SourceRoot = SourceRoot,
             .DestinationRoot = DestinationRoot,
             .IncludedFolders = New List(Of String)(IncludedFolders),
+            .CopyAll = CopyAll,
             .ExcludedFolders = New List(Of String)(ExcludedFolders),
             .ExcludedFiles = New List(Of String)(ExcludedFiles),
             .AppDataMode = AppDataMode,
@@ -54,6 +56,7 @@ Public Class BackupConfig
         Return $"SourceRoot={SourceRoot}" & Environment.NewLine &
                $"DestinationRoot={DestinationRoot}" & Environment.NewLine &
                $"IncludedFolders={String.Join(", ", IncludedFolders)}" & Environment.NewLine &
+               $"CopyAll={CopyAll}" & Environment.NewLine &
                $"ExcludedFolders={String.Join(", ", ExcludedFolders)}" & Environment.NewLine &
                $"ExcludedFiles={String.Join(", ", ExcludedFiles)}" & Environment.NewLine &
                $"AppDataMode={AppDataMode}" & Environment.NewLine &

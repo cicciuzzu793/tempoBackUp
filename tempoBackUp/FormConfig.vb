@@ -12,8 +12,10 @@ Public Class FormConfig
         AddHandler btnBrowseDestination.Click, Sub() BrowseFolder(txtDestinationRoot)
         AddHandler btnBrowseLog.Click, Sub() BrowseFolder(txtLogFolder)
         AddHandler cmbAppDataMode.SelectedIndexChanged, AddressOf UpdateAppDataFieldsState
+        AddHandler chkCopyAll.CheckedChanged, AddressOf UpdateCopyAllFieldsState
         ConfigureMultilineTextBoxes()
         UpdateAppDataFieldsState()
+        UpdateCopyAllFieldsState()
     End Sub
 
     Private Sub ConfigureMultilineTextBoxes()
@@ -28,6 +30,7 @@ Public Class FormConfig
         txtDestinationRoot.Text = config.DestinationRoot
         txtLogFolder.Text = config.LogFolder
         txtIncludedFolders.Text = LinesFromList(config.IncludedFolders)
+        chkCopyAll.Checked = config.CopyAll
         txtExcludedFolders.Text = LinesFromList(config.ExcludedFolders)
         txtExcludedFiles.Text = LinesFromList(config.ExcludedFiles)
         txtIncludedAppDataFolders.Text = LinesFromList(config.IncludedAppDataFolders)
@@ -68,12 +71,19 @@ Public Class FormConfig
             .DestinationRoot = txtDestinationRoot.Text.Trim(),
             .LogFolder = txtLogFolder.Text.Trim(),
             .IncludedFolders = ParseLines(txtIncludedFolders.Text),
+            .CopyAll = chkCopyAll.Checked,
             .ExcludedFolders = ParseLines(txtExcludedFolders.Text),
             .ExcludedFiles = ParseLines(txtExcludedFiles.Text),
             .AppDataMode = cmbAppDataMode.SelectedItem?.ToString(),
             .IncludedAppDataFolders = ParseLines(txtIncludedAppDataFolders.Text)
         }
     End Function
+
+    Private Sub UpdateCopyAllFieldsState()
+        Dim copyAll = chkCopyAll.Checked
+        txtIncludedFolders.Enabled = Not copyAll
+        lblIncludedFolders.Enabled = Not copyAll
+    End Sub
 
     Private Sub UpdateAppDataFieldsState()
         Dim isSelective = String.Equals(cmbAppDataMode.SelectedItem?.ToString(), "Selective", StringComparison.OrdinalIgnoreCase)

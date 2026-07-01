@@ -36,6 +36,7 @@ Partial Class FormConfig
         lblExcludedFolders = New Label()
         txtIncludedFolders = New TextBox()
         lblIncludedFolders = New Label()
+        chkCopyAll = New CheckBox()
         tabAppData = New TabPage()
         txtIncludedAppDataFolders = New TextBox()
         lblIncludedAppDataFolders = New Label()
@@ -183,6 +184,7 @@ Partial Class FormConfig
         tabFolders.Controls.Add(lblExcludedFolders)
         tabFolders.Controls.Add(txtIncludedFolders)
         tabFolders.Controls.Add(lblIncludedFolders)
+        tabFolders.Controls.Add(chkCopyAll)
         tabFolders.Location = New Point(4, 24)
         tabFolders.Name = "tabFolders"
         tabFolders.Padding = New Padding(8)
@@ -191,24 +193,34 @@ Partial Class FormConfig
         tabFolders.Text = "Cartelle"
         tabFolders.UseVisualStyleBackColor = True
         '
+        'chkCopyAll
+        '
+        chkCopyAll.AutoSize = True
+        chkCopyAll.Location = New Point(11, 16)
+        chkCopyAll.Name = "chkCopyAll"
+        chkCopyAll.Size = New Size(330, 19)
+        chkCopyAll.TabIndex = 0
+        chkCopyAll.Text = "Copia tutto il contenuto della sorgente (senza elenco cartelle)"
+        chkCopyAll.UseVisualStyleBackColor = True
+        '
         'lblIncludedFolders
         '
         lblIncludedFolders.AutoSize = True
-        lblIncludedFolders.Location = New Point(11, 16)
+        lblIncludedFolders.Location = New Point(11, 44)
         lblIncludedFolders.Name = "lblIncludedFolders"
         lblIncludedFolders.Size = New Size(176, 15)
-        lblIncludedFolders.TabIndex = 0
+        lblIncludedFolders.TabIndex = 1
         lblIncludedFolders.Text = "Cartelle incluse (una per riga)"
         '
         'txtIncludedFolders
         '
         txtIncludedFolders.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        txtIncludedFolders.Location = New Point(11, 34)
+        txtIncludedFolders.Location = New Point(11, 62)
         txtIncludedFolders.Multiline = True
         txtIncludedFolders.Name = "txtIncludedFolders"
         txtIncludedFolders.ScrollBars = ScrollBars.Vertical
-        txtIncludedFolders.Size = New Size(727, 110)
-        txtIncludedFolders.TabIndex = 1
+        txtIncludedFolders.Size = New Size(727, 82)
+        txtIncludedFolders.TabIndex = 2
         '
         'lblExcludedFolders
         '
@@ -384,6 +396,7 @@ Partial Class FormConfig
     Friend WithEvents txtLogFolder As TextBox
     Friend WithEvents btnBrowseLog As Button
     Friend WithEvents lblNasHint As Label
+    Friend WithEvents chkCopyAll As CheckBox
     Friend WithEvents lblIncludedFolders As Label
     Friend WithEvents txtIncludedFolders As TextBox
     Friend WithEvents lblExcludedFolders As Label

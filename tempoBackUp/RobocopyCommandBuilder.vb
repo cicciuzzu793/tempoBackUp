@@ -71,6 +71,10 @@ Public Class RobocopyCommandBuilder
 
         If String.Equals(config.AppDataMode, "Excluded", StringComparison.OrdinalIgnoreCase) Then
             directories.Add(PathValidator.NormalizePath(Path.Combine(profileRoot, "AppData")))
+        ElseIf config.CopyAll AndAlso
+               String.Equals(config.AppDataMode, "Selective", StringComparison.OrdinalIgnoreCase) AndAlso
+               PathValidator.PathsEqual(currentSource, profileRoot) Then
+            directories.Add(PathValidator.NormalizePath(Path.Combine(profileRoot, "AppData")))
         End If
 
         Return directories

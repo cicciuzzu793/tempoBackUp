@@ -161,20 +161,22 @@ Public Module PathValidator
             Return PathValidationResult.Fail($"La condivisione di rete non è raggiungibile: {destination}")
         End If
 
-        If config.IncludedFolders Is Nothing OrElse config.IncludedFolders.Count = 0 Then
-            Return PathValidationResult.Fail("IncludedFolders è vuoto.")
+        If Not config.CopyAll AndAlso (config.IncludedFolders Is Nothing OrElse config.IncludedFolders.Count = 0) Then
+            Return PathValidationResult.Fail("IncludedFolders è vuoto. Attiva Copia tutto oppure indica almeno una cartella.")
         End If
 
-        For Each folder In config.IncludedFolders
-            If String.IsNullOrWhiteSpace(folder) Then
-                Return PathValidationResult.Fail("IncludedFolders contiene un valore vuoto.")
-            End If
+        If Not config.CopyAll Then
+            For Each folder In config.IncludedFolders
+                If String.IsNullOrWhiteSpace(folder) Then
+                    Return PathValidationResult.Fail("IncludedFolders contiene un valore vuoto.")
+                End If
 
-            Dim includedPath = Path.Combine(source, folder)
-            If ContainsInvalidPathCharacters(includedPath) OrElse ContainsShellInjection(includedPath) Then
-                Return PathValidationResult.Fail($"Percorso incluso non valido: {folder}")
-            End If
-        Next
+                Dim includedPath = Path.Combine(source, folder)
+                If ContainsInvalidPathCharacters(includedPath) OrElse ContainsShellInjection(includedPath) Then
+                    Return PathValidationResult.Fail($"Percorso incluso non valido: {folder}")
+                End If
+            Next
+        End If
 
         If Not RobocopyExists() Then
             Return PathValidationResult.Fail("Robocopy non è disponibile su questo sistema.")
