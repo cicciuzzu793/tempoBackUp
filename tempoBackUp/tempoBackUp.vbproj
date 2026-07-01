@@ -8,6 +8,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\tempoBackUp.ico</ApplicationIcon>
     <AssemblyTitle>tempoBackUp</AssemblyTitle>
+    <Company>Qrcode Srl</Company>
+    <Authors>Francesco Passeri</Authors>
     <Description>Backup manuale tramite Robocopy</Description>
     <Version>1.0.1</Version>
     <FileVersion>1.0.1.0</FileVersion>

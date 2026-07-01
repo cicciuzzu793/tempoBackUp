@@ -3,7 +3,7 @@
 
   <Package
     Name="tempoBackUp"
-    Manufacturer="Francesco"
+    Manufacturer="Qrcode Srl"
     Version="1.0.1.0"
     UpgradeCode="c8f4a2e1-6b3d-4f91-9c2e-1a7d5e8b4f30"
     Scope="perMachine">
@@ -11,6 +11,8 @@
     <SummaryInformation
       Description="Backup manuale di cartelle utente tramite Robocopy"
       Keywords="backup, robocopy, tempoBackUp" />
+
+    <Property Id="ARPCONTACT" Value="Francesco Passeri" />
 
     <MajorUpgrade DowngradeErrorMessage="È già installata una versione più recente di tempoBackUp." />
     <MediaTemplate EmbedCab="yes" />
@@ -72,7 +74,7 @@
       <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
       <RegistryValue
         Root="HKCU"
-        Key="Software\Francesco\tempoBackUp"
+        Key="Software\QrcodeSrl\tempoBackUp"
         Name="StartMenuShortcut"
         Type="integer"
         Value="1"
@@ -89,7 +91,7 @@
         Description="Backup manuale tramite Robocopy" />
       <RegistryValue
         Root="HKCU"
-        Key="Software\Francesco\tempoBackUp"
+        Key="Software\QrcodeSrl\tempoBackUp"
         Name="DesktopShortcut"
         Type="integer"
         Value="1"
