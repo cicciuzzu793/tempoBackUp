@@ -78,8 +78,14 @@ Public Class FormMain
             lblStatus.Text = $"Avvio {modeLabel}..."
             AppendOutput($"Avvio {modeLabel} alle {DateTime.Now:HH:mm:ss}")
 
-            Dim summary = Await _runner.RunAsync(_config, simulation, _runCts.Token)
-            lblStatus.Text = summary.Outcome.ToString()
+            Dim summary = Await _runner.RunAsync(_config, simulation, _runCts.Token).ConfigureAwait(True)
+
+            If _runCts.IsCancellationRequested OrElse summary.Cancelled Then
+                lblStatus.Text = BackupOutcome.Cancelled.ToString()
+                AppendOutput("Operazione interrotta.")
+            Else
+                lblStatus.Text = summary.Outcome.ToString()
+            End If
 
             For Each message In summary.Messages
                 AppendOutput(message)
@@ -87,10 +93,6 @@ Public Class FormMain
 
             If Not String.IsNullOrWhiteSpace(summary.LogFilePath) Then
                 AppendOutput($"Log salvato in: {summary.LogFilePath}")
-            End If
-
-            If summary.Cancelled Then
-                AppendOutput("Operazione interrotta.")
             End If
         Catch ex As OperationCanceledException
             lblStatus.Text = BackupOutcome.Cancelled.ToString()
@@ -122,13 +124,10 @@ Public Class FormMain
             Return
         End If
 
+        _runner.RequestStop()
         _runCts?.Cancel()
         lblStatus.Text = "Interruzione in corso..."
         AppendOutput("Richiesta di interruzione inviata.")
-
-        If _runner.RequestStop() Then
-            AppendOutput("Processo Robocopy terminato.")
-        End If
     End Sub
 
     Private Sub btnEditConfig_Click(sender As Object, e As EventArgs)

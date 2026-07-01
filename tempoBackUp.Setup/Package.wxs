@@ -4,7 +4,7 @@
   <Package
     Name="tempoBackUp"
     Manufacturer="Qrcode Srl"
-    Version="1.0.2.0"
+    Version="1.0.3.0"
     UpgradeCode="c8f4a2e1-6b3d-4f91-9c2e-1a7d5e8b4f30"
     Scope="perMachine">
 

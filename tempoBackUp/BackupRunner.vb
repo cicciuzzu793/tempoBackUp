@@ -40,11 +40,11 @@ Public Class BackupRunner
         summary.LogFilePath = logFilePath
 
         Using logWriter As New StreamWriter(logFilePath, append:=False, Encoding.UTF8)
-            Await WriteLogLineAsync(logWriter, $"=== tempoBackUp {If(simulation, "simulazione", "backup")} ===")
-            Await WriteLogLineAsync(logWriter, $"Avviato: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
-            Await WriteLogLineAsync(logWriter, "Configurazione:")
-            Await WriteLogLineAsync(logWriter, config.ToLogSummary())
-            Await WriteLogLineAsync(logWriter, String.Empty)
+            Await WriteLogLineAsync(logWriter, $"=== tempoBackUp {If(simulation, "simulazione", "backup")} ===").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, $"Avviato: {DateTime.Now:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, "Configurazione:").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, config.ToLogSummary()).ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, String.Empty).ConfigureAwait(False)
 
             Dim sourceRoot = PathValidator.NormalizePath(config.SourceRoot)
             Dim destinationRoot = PathValidator.NormalizePath(config.DestinationRoot)
@@ -55,7 +55,7 @@ Public Class BackupRunner
                 If IsCancellationRequested(cancellationToken) Then
                     summary.Cancelled = True
                     summary.Outcome = BackupOutcome.Cancelled
-                    Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.")
+                    Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.").ConfigureAwait(False)
                     Exit For
                 End If
 
@@ -66,7 +66,7 @@ Public Class BackupRunner
                     Dim skipMessage = $"Cartella sorgente assente, salto: {sourcePath}"
                     summary.Messages.Add(skipMessage)
                     RaiseOutput(skipMessage)
-                    Await WriteLogLineAsync(logWriter, skipMessage)
+                    Await WriteLogLineAsync(logWriter, skipMessage).ConfigureAwait(False)
                     Continue For
                 End If
 
@@ -77,10 +77,10 @@ Public Class BackupRunner
 
                 RaiseStatus($"Esecuzione: {folder}")
                 RaiseOutput(commandLine)
-                Await WriteLogLineAsync(logWriter, $"--- Cartella: {folder} ---")
-                Await WriteLogLineAsync(logWriter, commandLine)
+                Await WriteLogLineAsync(logWriter, $"--- Cartella: {folder} ---").ConfigureAwait(False)
+                Await WriteLogLineAsync(logWriter, commandLine).ConfigureAwait(False)
 
-                Dim folderResult = Await RunSingleRobocopyAsync(args, logWriter, cancellationToken)
+                Dim folderResult = Await RunSingleRobocopyAsync(args, logWriter, cancellationToken).ConfigureAwait(False)
                 summary.Messages.Add($"{folder}: {folderResult.Message}")
                 overallOutcome = MergeOutcome(overallOutcome, folderResult.Outcome)
 
@@ -93,7 +93,7 @@ Public Class BackupRunner
                 If IsCancellationRequested(cancellationToken) Then
                     summary.Cancelled = True
                     summary.Outcome = BackupOutcome.Cancelled
-                    Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.")
+                    Await WriteLogLineAsync(logWriter, "Operazione interrotta dall'utente.").ConfigureAwait(False)
                     Exit For
                 End If
 
@@ -107,9 +107,9 @@ Public Class BackupRunner
             End If
 
             summary.Outcome = overallOutcome
-            Await WriteLogLineAsync(logWriter, String.Empty)
-            Await WriteLogLineAsync(logWriter, $"Risultato finale: {summary.Outcome}")
-            Await WriteLogLineAsync(logWriter, $"Terminato: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+            Await WriteLogLineAsync(logWriter, String.Empty).ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, $"Risultato finale: {summary.Outcome}").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, $"Terminato: {DateTime.Now:yyyy-MM-dd HH:mm:ss}").ConfigureAwait(False)
         End Using
 
         Return summary
@@ -123,24 +123,13 @@ Public Class BackupRunner
         End If
 
         Try
-            _currentProcess.Kill(entireProcessTree:=True)
+            TerminateProcess(_currentProcess)
             Return True
         Catch ex As Exception
             RaiseOutput($"Impossibile interrompere Robocopy: {ex.Message}")
             Return False
         End Try
     End Function
-
-    Private Sub KillCurrentProcessIfRunning()
-        If _currentProcess Is Nothing OrElse _currentProcess.HasExited Then
-            Return
-        End If
-
-        Try
-            _currentProcess.Kill(entireProcessTree:=True)
-        Catch
-        End Try
-    End Sub
 
     Private Function IsCancellationRequested(cancellationToken As CancellationToken) As Boolean
         Return _cancellationRequested OrElse cancellationToken.IsCancellationRequested
@@ -150,36 +139,38 @@ Public Class BackupRunner
         Dim robocopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "robocopy.exe")
         Dim outputBuilder As New StringBuilder()
         Dim errorBuilder As New StringBuilder()
+        Dim process As New Process()
 
-        Using process As New Process()
-            _currentProcess = process
-            process.StartInfo.FileName = robocopyPath
-            process.StartInfo.UseShellExecute = False
-            process.StartInfo.RedirectStandardOutput = True
-            process.StartInfo.RedirectStandardError = True
-            process.StartInfo.CreateNoWindow = True
-            process.StartInfo.ArgumentList.Clear()
+        _currentProcess = process
+        process.StartInfo.FileName = robocopyPath
+        process.StartInfo.UseShellExecute = False
+        process.StartInfo.RedirectStandardOutput = True
+        process.StartInfo.RedirectStandardError = True
+        process.StartInfo.CreateNoWindow = True
 
-            For Each argument In args
-                process.StartInfo.ArgumentList.Add(argument)
-            Next
+        For Each argument In args
+            process.StartInfo.ArgumentList.Add(argument)
+        Next
 
-            AddHandler process.OutputDataReceived,
-                Sub(sender, e)
-                    If e.Data IsNot Nothing Then
-                        outputBuilder.AppendLine(e.Data)
-                        RaiseOutput(e.Data)
-                    End If
-                End Sub
+        AddHandler process.OutputDataReceived,
+            Sub(sender, e)
+                If e.Data IsNot Nothing Then
+                    outputBuilder.AppendLine(e.Data)
+                    RaiseOutput(e.Data)
+                End If
+            End Sub
 
-            AddHandler process.ErrorDataReceived,
-                Sub(sender, e)
-                    If e.Data IsNot Nothing Then
-                        errorBuilder.AppendLine(e.Data)
-                        RaiseOutput(e.Data)
-                    End If
-                End Sub
+        AddHandler process.ErrorDataReceived,
+            Sub(sender, e)
+                If e.Data IsNot Nothing Then
+                    errorBuilder.AppendLine(e.Data)
+                    RaiseOutput(e.Data)
+                End If
+            End Sub
 
+        Dim cancelled = False
+
+        Try
             If Not process.Start() Then
                 Throw New InvalidOperationException("Avvio di Robocopy non riuscito.")
             End If
@@ -187,39 +178,98 @@ Public Class BackupRunner
             process.BeginOutputReadLine()
             process.BeginErrorReadLine()
 
-            Await Task.Run(Sub()
-                               While Not process.HasExited
-                                   If IsCancellationRequested(cancellationToken) Then
-                                       Exit While
-                                   End If
-                                   Thread.Sleep(100)
-                               End While
-                           End Sub, cancellationToken)
+            While Not process.HasExited
+                If IsCancellationRequested(cancellationToken) Then
+                    cancelled = True
+                    Exit While
+                End If
+
+                Await Task.Delay(100, CancellationToken.None).ConfigureAwait(False)
+            End While
+
+            If cancelled AndAlso Not process.HasExited Then
+                TerminateProcess(process)
+            ElseIf Not process.HasExited Then
+                Await WaitForProcessExitAsync(process, cancellationToken).ConfigureAwait(False)
+            End If
 
             If IsCancellationRequested(cancellationToken) Then
-                KillCurrentProcessIfRunning()
+                cancelled = True
             End If
 
-            If Not process.HasExited Then
-                process.WaitForExit(5000)
-            End If
+            Await Task.Delay(150, CancellationToken.None).ConfigureAwait(False)
 
             Dim exitCode = If(process.HasExited, process.ExitCode, -1)
-            Dim cancelled = IsCancellationRequested(cancellationToken)
             Dim result = RobocopyResult.InterpretExitCode(exitCode, cancelled)
 
-            Await WriteLogLineAsync(logWriter, String.Empty)
-            Await WriteLogLineAsync(logWriter, "--- Output standard ---")
-            Await WriteLogLineAsync(logWriter, outputBuilder.ToString())
-            Await WriteLogLineAsync(logWriter, "--- Output errori ---")
-            Await WriteLogLineAsync(logWriter, errorBuilder.ToString())
-            Await WriteLogLineAsync(logWriter, $"Exit code: {exitCode}")
-            Await WriteLogLineAsync(logWriter, $"Risultato: {result.Outcome} - {result.Message}")
+            Await WriteLogLineAsync(logWriter, String.Empty).ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, "--- Output standard ---").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, outputBuilder.ToString()).ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, "--- Output errori ---").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, errorBuilder.ToString()).ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, $"Exit code: {exitCode}").ConfigureAwait(False)
+            Await WriteLogLineAsync(logWriter, $"Risultato: {result.Outcome} - {result.Message}").ConfigureAwait(False)
 
-            _currentProcess = Nothing
             Return result
+        Finally
+            _currentProcess = Nothing
+            CloseProcessStreams(process)
+
+            If Not process.HasExited Then
+                Try
+                    process.Kill(entireProcessTree:=True)
+                Catch
+                End Try
+            End If
+
+            Try
+                process.Dispose()
+            Catch
+            End Try
+        End Try
+    End Function
+
+    Private Shared Async Function WaitForProcessExitAsync(process As Process, cancellationToken As CancellationToken) As Task
+        Using linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            linkedCts.CancelAfter(TimeSpan.FromHours(12))
+
+            Try
+                Await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(False)
+            Catch ex As OperationCanceledException When cancellationToken.IsCancellationRequested
+                TerminateProcess(process)
+            End Try
         End Using
     End Function
+
+    Private Shared Sub TerminateProcess(process As Process)
+        If process Is Nothing OrElse process.HasExited Then
+            Return
+        End If
+
+        Try
+            process.Kill(entireProcessTree:=True)
+        Catch
+        End Try
+
+        CloseProcessStreams(process)
+
+        Try
+            process.WaitForExit(3000)
+        Catch
+        End Try
+    End Sub
+
+    Private Shared Sub CloseProcessStreams(process As Process)
+        Try
+            process.CancelOutputRead()
+        Catch
+        End Try
+
+        Try
+            process.CancelErrorRead()
+        Catch
+        End Try
+    End Sub
 
     Private Shared Function BuildFolderList(config As BackupConfig, sourceRoot As String) As List(Of String)
         Dim folders As New List(Of String)()
