@@ -27,7 +27,8 @@ Public Class RobocopyCommandBuilder
             args.Add("/L")
         End If
 
-        For Each excludedDirectory In GetExcludedDirectories(config, source)
+        Dim profileRoot = PathValidator.NormalizePath(config.SourceRoot)
+        For Each excludedDirectory In GetExcludedDirectories(config, PathValidator.NormalizePath(source), profileRoot)
             args.Add("/XD")
             args.Add(excludedDirectory)
         Next
@@ -44,7 +45,7 @@ Public Class RobocopyCommandBuilder
         Return "robocopy " & String.Join(" ", args.Select(AddressOf QuoteForLog))
     End Function
 
-    Private Function GetExcludedDirectories(config As BackupConfig, sourceRoot As String) As IEnumerable(Of String)
+    Private Function GetExcludedDirectories(config As BackupConfig, currentSource As String, profileRoot As String) As IEnumerable(Of String)
         Dim directories As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
 
         For Each directory In HardcodedExclusions.ExcludedDirectories
@@ -52,14 +53,34 @@ Public Class RobocopyCommandBuilder
         Next
 
         For Each relativeFolder In config.ExcludedFolders
-            directories.Add(PathValidator.NormalizePath(Path.Combine(sourceRoot, relativeFolder)))
+            If String.IsNullOrWhiteSpace(relativeFolder) Then
+                Continue For
+            End If
+
+            Dim trimmed = relativeFolder.Trim()
+            If IsSimpleFolderName(trimmed) Then
+                directories.Add(trimmed)
+                Continue For
+            End If
+
+            Dim fullExcludedPath = PathValidator.NormalizePath(Path.Combine(profileRoot, trimmed))
+            If PathValidator.IsPathContainedIn(fullExcludedPath, currentSource) Then
+                directories.Add(fullExcludedPath)
+            End If
         Next
 
         If String.Equals(config.AppDataMode, "Excluded", StringComparison.OrdinalIgnoreCase) Then
-            directories.Add(PathValidator.NormalizePath(Path.Combine(sourceRoot, "AppData")))
+            directories.Add(PathValidator.NormalizePath(Path.Combine(profileRoot, "AppData")))
         End If
 
         Return directories
+    End Function
+
+    Private Shared Function IsSimpleFolderName(name As String) As Boolean
+        Return Not name.Contains(Path.DirectorySeparatorChar) AndAlso
+               Not name.Contains(Path.AltDirectorySeparatorChar) AndAlso
+               Not name.Contains("/"c) AndAlso
+               Not name.Contains(":"c)
     End Function
 
     Private Function GetExcludedFiles(config As BackupConfig) As IEnumerable(Of String)

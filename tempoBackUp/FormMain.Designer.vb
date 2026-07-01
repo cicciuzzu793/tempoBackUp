@@ -127,6 +127,7 @@ Partial Class FormMain
         progressBarWork.Step = 1
         progressBarWork.Style = ProgressBarStyle.Continuous
         progressBarWork.TabIndex = 9
+        progressBarWork.TabStop = False
         '
         'txtOutput
         '

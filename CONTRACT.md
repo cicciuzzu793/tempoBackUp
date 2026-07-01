@@ -39,7 +39,7 @@ Schema obbligatorio (nomi proprietà immutabili):
 - **SourceRoot**: radice del profilo utente da cui derivano le cartelle incluse.
 - **DestinationRoot**: radice di destinazione; per ogni cartella inclusa si copia `SourceRoot\Nome` → `DestinationRoot\Nome`.
 - **IncludedFolders**: elenco relativo di cartelle sotto `SourceRoot`.
-- **ExcludedFolders**: percorsi relativi esclusi tramite `/XD`.
+- **ExcludedFolders**: esclusioni tramite `/XD`. Un **nome semplice** (es. `node_modules`) esclude ogni cartella con quel nome a qualsiasi profondità sotto la cartella in copia. Un **percorso relativo a SourceRoot** (es. `AppData\Local\Temp`) esclude quel percorso quando ricade sotto la cartella inclusa in esecuzione.
 - **ExcludedFiles**: pattern file esclusi tramite `/XF`.
 - **AppDataMode**: `Excluded` | `Included` | `Selective`.
 - **IncludedAppDataFolders**: usato solo con `Selective`; percorsi relativi sotto `AppData`.

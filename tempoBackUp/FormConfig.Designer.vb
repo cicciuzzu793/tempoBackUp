@@ -217,7 +217,7 @@ Partial Class FormConfig
         lblExcludedFolders.Name = "lblExcludedFolders"
         lblExcludedFolders.Size = New Size(242, 15)
         lblExcludedFolders.TabIndex = 2
-        lblExcludedFolders.Text = "Cartelle escluse, relative alla sorgente"
+        lblExcludedFolders.Text = "Cartelle escluse (nome semplice es. node_modules, oppure percorso da SourceRoot)"
         '
         'txtExcludedFolders
         '

@@ -7,6 +7,7 @@ Public Class FormMain
     Private _configPath As String
     Private _runCts As CancellationTokenSource
     Private _isRunning As Boolean
+    Private _folderProgressActive As Boolean
 
     Public Sub New()
         InitializeComponent()
@@ -73,6 +74,7 @@ Public Class FormMain
         txtOutput.Clear()
         _isRunning = True
         ResetProgressUi()
+        SetInteractiveControlsDuringRun(running:=True)
         SetButtonsEnabled(canRun:=False, running:=True)
         _runCts = New CancellationTokenSource()
 
@@ -108,9 +110,8 @@ Public Class FormMain
             _runCts?.Dispose()
             _runCts = Nothing
             SetButtonsEnabled(canRun:=_config IsNot Nothing, running:=False)
-            If progressBarWork.Style = ProgressBarStyle.Marquee Then
-                progressBarWork.Style = ProgressBarStyle.Continuous
-            End If
+            SetInteractiveControlsDuringRun(running:=False)
+            EnsureProgressBarContinuous()
         End Try
     End Function
 
@@ -186,10 +187,22 @@ Public Class FormMain
     End Sub
 
     Private Sub OnRunnerOutputReceived(sender As Object, message As String)
-        AppendOutput(message)
+        If Not CanUpdateUi() Then
+            Return
+        End If
+
+        If InvokeRequired Then
+            BeginInvoke(New Action(Of String)(AddressOf AppendOutput), message)
+        Else
+            AppendOutput(message)
+        End If
     End Sub
 
     Private Sub OnRunnerStatusChanged(sender As Object, message As String)
+        If Not CanUpdateUi() Then
+            Return
+        End If
+
         If InvokeRequired Then
             BeginInvoke(New Action(Of String)(AddressOf UpdateStatus), message)
         Else
@@ -198,33 +211,81 @@ Public Class FormMain
     End Sub
 
     Private Sub OnRunnerProgressChanged(sender As Object, e As BackupProgressEventArgs)
+        If Not CanUpdateUi() Then
+            Return
+        End If
+
+        Dim progressSnapshot = New BackupProgressEventArgs With {
+            .PercentComplete = e.PercentComplete,
+            .Message = e.Message,
+            .IsFolderActive = e.IsFolderActive
+        }
+
         If InvokeRequired Then
-            BeginInvoke(New Action(Of BackupProgressEventArgs)(AddressOf UpdateProgressUi), e)
+            BeginInvoke(New Action(Of BackupProgressEventArgs)(AddressOf UpdateProgressUi), progressSnapshot)
         Else
-            UpdateProgressUi(e)
+            UpdateProgressUi(progressSnapshot)
         End If
     End Sub
 
+    Private Function CanUpdateUi() As Boolean
+        Return Not IsDisposed AndAlso IsHandleCreated
+    End Function
+
+    Private Sub SetInteractiveControlsDuringRun(running As Boolean)
+        txtOutput.TabStop = Not running
+        progressBarWork.TabStop = False
+    End Sub
+
     Private Sub ResetProgressUi()
-        progressBarWork.Style = ProgressBarStyle.Continuous
+        _folderProgressActive = False
         progressBarWork.Minimum = 0
         progressBarWork.Maximum = 100
+        EnsureProgressBarContinuous()
         progressBarWork.Value = 0
         lblProgressDetail.Text = "In attesa"
     End Sub
 
     Private Sub UpdateProgressUi(progress As BackupProgressEventArgs)
-        lblProgressDetail.Text = progress.Message
-
-        If progress.IsFolderActive Then
-            progressBarWork.Style = ProgressBarStyle.Continuous
-            progressBarWork.Value = Math.Max(progressBarWork.Minimum, Math.Min(progress.PercentComplete, progressBarWork.Maximum))
-            progressBarWork.Style = ProgressBarStyle.Marquee
+        If Not CanUpdateUi() Then
             Return
         End If
 
+        lblProgressDetail.Text = progress.Message
+
+        If progress.IsFolderActive Then
+            EnsureProgressBarMarquee()
+            Return
+        End If
+
+        SetProgressBarContinuousValue(progress.PercentComplete)
+    End Sub
+
+    Private Sub EnsureProgressBarMarquee()
+        If _folderProgressActive AndAlso progressBarWork.Style = ProgressBarStyle.Marquee Then
+            Return
+        End If
+
+        _folderProgressActive = True
+        progressBarWork.Style = ProgressBarStyle.Marquee
+    End Sub
+
+    Private Sub EnsureProgressBarContinuous()
+        If Not _folderProgressActive AndAlso progressBarWork.Style = ProgressBarStyle.Continuous Then
+            Return
+        End If
+
+        _folderProgressActive = False
         progressBarWork.Style = ProgressBarStyle.Continuous
-        progressBarWork.Value = Math.Max(progressBarWork.Minimum, Math.Min(progress.PercentComplete, progressBarWork.Maximum))
+    End Sub
+
+    Private Sub SetProgressBarContinuousValue(value As Integer)
+        EnsureProgressBarContinuous()
+
+        Dim clamped = Math.Max(progressBarWork.Minimum, Math.Min(value, progressBarWork.Maximum))
+        If progressBarWork.Value <> clamped Then
+            progressBarWork.Value = clamped
+        End If
     End Sub
 
     Private Sub UpdateStatus(message As String)
@@ -232,6 +293,10 @@ Public Class FormMain
     End Sub
 
     Private Sub AppendOutput(message As String)
+        If Not CanUpdateUi() Then
+            Return
+        End If
+
         If InvokeRequired Then
             BeginInvoke(New Action(Of String)(AddressOf AppendOutput), message)
             Return

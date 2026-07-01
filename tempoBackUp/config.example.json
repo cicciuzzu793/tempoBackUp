@@ -10,6 +10,7 @@
     "Music"
   ],
   "ExcludedFolders": [
+    "node_modules",
     "AppData\\Local\\Temp",
     "AppData\\Local\\Microsoft\\Windows\\INetCache"
   ],
